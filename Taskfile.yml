@@ -1,0 +1,51 @@
+# https://taskfile.dev
+version: '3'
+
+vars:
+  VENV: .venv
+  PY: '{{.VENV}}/bin/python'
+  PIP: '{{.VENV}}/bin/pip'
+
+tasks:
+  venv:
+    desc: Create local virtualenv
+    status:
+      - test -x {{.PY}}
+    cmds:
+      - python3 -m venv {{.VENV}}
+      - "{{.PIP}} install -U pip"
+
+  deps:
+    desc: Install project (editable) into venv
+    deps: [venv]
+    cmds:
+      - "{{.PIP}} install -e ."
+
+  run:
+    desc: "Run pipeline on one case (env: CASE, OUT, MODE)"
+    deps: [deps]
+    vars:
+      CASE: '{{default "cases/case_01.json" .CASE}}'
+      OUT: '{{default "runs/case_01" .OUT}}'
+      MODE: '{{default "baseline" .MODE}}'
+    cmds:
+      - "{{.PY}} -m pa_trace run --case {{.CASE}} --out {{.OUT}} --mode {{.MODE}}"
+      - 'echo "Open: {{.OUT}}/highlights.html"'
+      - 'echo "Open: {{.OUT}}/packet.md"'
+
+  eval:
+    desc: "Evaluate on cases folder (env: CASES_DIR, GOLD, EVAL_OUT, MODE)"
+    deps: [deps]
+    vars:
+      CASES_DIR: '{{default "cases" .CASES_DIR}}'
+      GOLD: '{{default "cases/gold_labels.json" .GOLD}}'
+      EVAL_OUT: '{{default "runs/eval" .EVAL_OUT}}'
+      MODE: '{{default "baseline" .MODE}}'
+    cmds:
+      - "{{.PY}} -m pa_trace eval --cases {{.CASES_DIR}} --gold {{.GOLD}} --out {{.EVAL_OUT}} --mode {{.MODE}}"
+      - 'echo "Eval report: {{.EVAL_OUT}}/eval_report.md"'
+
+  clean:
+    desc: Remove run outputs
+    cmds:
+      - rm -rf runs
