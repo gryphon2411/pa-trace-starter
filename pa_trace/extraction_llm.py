@@ -86,24 +86,42 @@ def _parse_json_response(raw_output: str) -> Optional[Dict[str, Any]]:
     except json.JSONDecodeError:
         return None
 
-
 # -----------------------------------------------------------------------------
 # Evidence Validation
 # -----------------------------------------------------------------------------
-def _find_word_boundary_match(quote: str, text: str) -> int:
+
+# Common abbreviation expansions for evidence matching
+QUOTE_SYNONYMS = {
+    "pt": ["physical therapy", "PT", "physiotherapy"],
+    "nsaid": ["NSAIDs", "ibuprofen", "naproxen", "diclofenac"],
+    "nsaids": ["NSAIDs", "ibuprofen", "naproxen", "diclofenac"],
+    "esi": ["epidural steroid injection", "epidural injection", "ESI"],
+}
+
+
+def _find_word_boundary_match(quote: str, text: str) -> tuple[int, str]:
     """
     Find quote in text using word-boundary matching.
     This prevents matching "pt" inside "symptoms".
-    Returns -1 if not found as a standalone word/phrase.
+    Tries synonym expansion if direct match fails.
+    Returns (position, matched_text) or (-1, "") if not found.
     """
-    # Use word-boundary match to avoid false positives
+    # Try direct word-boundary match first
     pattern = r'\b' + re.escape(quote) + r'\b'
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
-        return match.start()
+        return match.start(), text[match.start():match.end()]
     
-    # No word-boundary match found - reject this quote
-    return -1
+    # Try synonym expansion (e.g., "pt" -> "physical therapy")
+    synonyms = QUOTE_SYNONYMS.get(quote.lower(), [])
+    for syn in synonyms:
+        pattern = r'\b' + re.escape(syn) + r'\b'
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return match.start(), text[match.start():match.end()]
+    
+    # No match found
+    return -1, ""
 
 
 def _validate_evidence_spans(parsed: Dict[str, Any], note_text: str) -> Dict[str, Any]:
@@ -127,15 +145,15 @@ def _validate_evidence_spans(parsed: Dict[str, Any], note_text: str) -> Dict[str
         for ev in field_evidence:
             quote = ev.get("quote", "")
             if quote:
-                # Find actual position using word-boundary matching
-                idx = _find_word_boundary_match(quote, note_text)
+                # Find actual position using word-boundary matching (with synonym expansion)
+                idx, matched_text = _find_word_boundary_match(quote, note_text)
                 if idx != -1:
-                    # Recalculate correct offsets
+                    # Recalculate correct offsets using matched text
                     valid_evidence.append({
                         "source": "note",
                         "start": idx,
-                        "end": idx + len(quote),
-                        "quote": note_text[idx:idx + len(quote)]  # Use actual text case
+                        "end": idx + len(matched_text),
+                        "quote": matched_text
                     })
                 else:
                     # Quote not found in note - mark as missing
