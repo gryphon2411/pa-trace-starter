@@ -93,6 +93,7 @@ def _parse_json_response(raw_output: str) -> Optional[Dict[str, Any]]:
 def _validate_evidence_spans(parsed: Dict[str, Any], note_text: str) -> Dict[str, Any]:
     """
     Validate that all evidence quotes are actual substrings of the note.
+    Recalculates start/end offsets from the actual quote position.
     Invalid evidence -> field set to null, added to missing_evidence.
     """
     evidence = parsed.get("evidence", {})
@@ -108,12 +109,21 @@ def _validate_evidence_spans(parsed: Dict[str, Any], note_text: str) -> Dict[str
         valid_evidence = []
         for ev in field_evidence:
             quote = ev.get("quote", "")
-            if quote and quote in note_text:
-                valid_evidence.append(ev)
-            else:
-                # Quote not found in note - mark as missing
-                if field not in missing:
-                    missing.append(field)
+            if quote:
+                # Find actual position in note text
+                idx = note_text.find(quote)
+                if idx != -1:
+                    # Recalculate correct offsets
+                    valid_evidence.append({
+                        "source": "note",
+                        "start": idx,
+                        "end": idx + len(quote),
+                        "quote": quote
+                    })
+                else:
+                    # Quote not found in note - mark as missing
+                    if field not in missing:
+                        missing.append(field)
         
         if valid_evidence:
             evidence[field] = valid_evidence
