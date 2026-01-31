@@ -2,3 +2,9 @@ runs/
 __pycache__/
 *.pyc
 .venv
+
+# Model binaries (use separate download)
+models/
+
+# Build artifacts
+*.egg-info/
