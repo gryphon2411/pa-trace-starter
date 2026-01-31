@@ -5,7 +5,8 @@ vars:
   VENV: .venv
   PY: '{{.VENV}}/bin/python'
   PIP: '{{.VENV}}/bin/pip'
-  MODEL_FILE: models/google_medgemma-4b-it-Q4_K_M.gguf
+  DEPS_STAMP: '{{.VENV}}/.deps_stamp'
+  MODEL_FILE: '{{default "models/google_medgemma-4b-it-Q4_K_M.gguf" .MODEL_FILE}}'
 
 tasks:
   venv:
@@ -20,12 +21,14 @@ tasks:
     desc: Install project (editable) into venv
     deps: [venv]
     status:
-      - test -d {{.VENV}} && {{.PY}} -c "import pa_trace" >/dev/null 2>&1
+      - test -f {{.DEPS_STAMP}} && test {{.DEPS_STAMP}} -nt pyproject.toml
     cmds:
       - "{{.PIP}} install -e ."
+      - "date > {{.DEPS_STAMP}}"
 
   model:
     desc: Download MedGemma GGUF model from HuggingFace
+    deps: [deps]
     status:
       - test -f {{.MODEL_FILE}}
     cmds:
