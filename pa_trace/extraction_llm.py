@@ -90,46 +90,63 @@ def _parse_json_response(raw_output: str) -> Optional[Dict[str, Any]]:
 # Evidence Validation
 # -----------------------------------------------------------------------------
 
-# Common abbreviation expansions for evidence matching
-QUOTE_SYNONYMS = {
-    "pt": ["physical therapy", "PT", "physiotherapy"],
-    "nsaid": ["NSAIDs", "ibuprofen", "naproxen", "diclofenac"],
-    "nsaids": ["NSAIDs", "ibuprofen", "naproxen", "diclofenac"],
-    "esi": ["epidural steroid injection", "epidural injection", "ESI"],
-}
+# Minimum quote requirements to ensure meaningful provenance
+MIN_QUOTE_LENGTH = 8  # characters
+MIN_QUOTE_TOKENS = 2  # words
 
 
-def _find_word_boundary_match(quote: str, text: str) -> tuple[int, str]:
+def _is_valid_quote_length(quote: str) -> bool:
     """
-    Find quote in text using word-boundary matching.
-    This prevents matching "pt" inside "symptoms".
-    Tries synonym expansion if direct match fails.
+    Check if quote meets minimum length requirements.
+    Accepts quotes that are either:
+    - >= MIN_QUOTE_LENGTH characters, OR
+    - >= MIN_QUOTE_TOKENS words, OR
+    - contain a digit (e.g., "6 weeks", "x6")
+    """
+    if len(quote) >= MIN_QUOTE_LENGTH:
+        return True
+    if len(quote.split()) >= MIN_QUOTE_TOKENS:
+        return True
+    if any(c.isdigit() for c in quote):
+        return True
+    return False
+
+
+def _find_quote_in_text(quote: str, text: str) -> tuple[int, str]:
+    """
+    Find quote in text. Uses word-boundary matching for short quotes
+    to prevent false positives (e.g., "pt" in "symptoms").
     Returns (position, matched_text) or (-1, "") if not found.
     """
-    # Try direct word-boundary match first
-    pattern = r'\b' + re.escape(quote) + r'\b'
-    match = re.search(pattern, text, re.IGNORECASE)
-    if match:
-        return match.start(), text[match.start():match.end()]
-    
-    # Try synonym expansion (e.g., "pt" -> "physical therapy")
-    synonyms = QUOTE_SYNONYMS.get(quote.lower(), [])
-    for syn in synonyms:
-        pattern = r'\b' + re.escape(syn) + r'\b'
+    # For short quotes (single token), use word-boundary matching
+    if len(quote.split()) == 1:
+        pattern = r'\b' + re.escape(quote) + r'\b'
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
             return match.start(), text[match.start():match.end()]
+        return -1, ""
     
-    # No match found
+    # For multi-token quotes, use case-insensitive substring search
+    text_lower = text.lower()
+    quote_lower = quote.lower()
+    idx = text_lower.find(quote_lower)
+    if idx != -1:
+        # Return the actual text (preserving original case)
+        return idx, text[idx:idx + len(quote)]
+    
     return -1, ""
 
 
 def _validate_evidence_spans(parsed: Dict[str, Any], note_text: str) -> Dict[str, Any]:
     """
-    Validate that all evidence quotes are actual substrings of the note.
-    Recalculates start/end offsets from the actual quote position.
-    Uses word-boundary matching to avoid false positives (e.g., "pt" in "symptoms").
-    Invalid evidence -> field set to null, added to missing_evidence.
+    Validate that all evidence quotes are actual verbatim substrings of the note.
+    
+    - Rejects ultra-short quotes (< 8 chars AND single token AND no digits)
+    - Uses word-boundary matching for single-token quotes
+    - Uses substring matching for multi-token quotes
+    - Recalculates start/end offsets from the actual match position
+    
+    Invalid evidence -> field nulled out, added to missing_evidence.
     """
     evidence = parsed.get("evidence", {})
     missing = list(parsed.get("missing_evidence", []))
@@ -144,27 +161,28 @@ def _validate_evidence_spans(parsed: Dict[str, Any], note_text: str) -> Dict[str
         valid_evidence = []
         for ev in field_evidence:
             quote = ev.get("quote", "")
-            if quote:
-                # Find actual position using word-boundary matching (with synonym expansion)
-                idx, matched_text = _find_word_boundary_match(quote, note_text)
-                if idx != -1:
-                    # Recalculate correct offsets using matched text
-                    valid_evidence.append({
-                        "source": "note",
-                        "start": idx,
-                        "end": idx + len(matched_text),
-                        "quote": matched_text
-                    })
-                else:
-                    # Quote not found in note - mark as missing
-                    if field not in missing:
-                        missing.append(field)
+            if not quote:
+                continue
+            
+            # Reject ultra-short quotes (weak provenance)
+            if not _is_valid_quote_length(quote):
+                continue
+            
+            # Find actual position in note text
+            idx, matched_text = _find_quote_in_text(quote, note_text)
+            if idx != -1:
+                valid_evidence.append({
+                    "source": "note",
+                    "start": idx,
+                    "end": idx + len(matched_text),
+                    "quote": matched_text
+                })
         
         if valid_evidence:
             evidence[field] = valid_evidence
         else:
             evidence[field] = []
-            # No valid evidence -> null out the field value
+            # No valid evidence -> null out the field value and mark missing
             if field in parsed and parsed[field] is not None:
                 if field not in missing:
                     missing.append(field)
