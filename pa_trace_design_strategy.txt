@@ -1,0 +1,207 @@
+PA-Trace UI Design Strategy
+Text Highlighting & Attention Management
+Use color-coded highlights for each evidence category, since color is a highly effective pre-attentive cue.
+For example, assign one distinct pastel background per category (e.g. teal for symptoms, orange for
+treatments) because our visual system “can use this [color] element … to distinguish items and extract
+information immediately” 1 . Avoid using underlines for highlighting (they imply links) or dense bolding
+alone; color backgrounds draw the eye without requiring effort. However, limit the total highlighted text.
+Nielsen Norman advises using bold/highlight sparingly (no more than ~30% of the text) so that only the
+most important points stand out 2 . If too much text is colored, “nothing stands out” and scanning slows
+2
+
+.
+
+Give each category a consistent style (color, maybe a colored underline or border) so users learn the coding
+quickly. Ideally use 3–4 distinct colors at most, per EHR design guidelines 3 . Overlapping highlights
+should be avoided if possible – Prodigy notes that “visualizing multiple nested overlapping spans” is
+confusing 4 . If two categories truly overlap, consider either merging them into a single combined
+highlight or breaking the text into two layers the user can toggle. One practical solution is toggles/filters
+per category (see Section 4) so the user can hide one category to reveal another without visual clutter. In
+general, use white space and text structure to break up dense paragraphs: keep lines ~50–75 characters
+long (roughly 10–15 words) 5 , and break text into short paragraphs or bullets when possible. As one UX
+guide notes, only 1–2 highlighting effects should be used: “if everything is highlighted, nothing stands
+out” 6 . In sum, apply color and emphasis selectively to guide attention, but keep the overall page clean
+and uncluttered.
+
+Trust & Explainability (XAI) UI Patterns
+Explicitly link each structured fact to its source text. A proven pattern is brushing-and-linking: when the
+reviewer hovers over or selects a fact (on the right), simultaneously highlight the corresponding span in the
+note (on the left), and vice versa 7 . This coordinated highlighting (often called linked highlighting in data
+visualization) makes provenance clear at a glance. For example, clicking the “Duration: 8 weeks” row could
+auto-scroll and flash-highlight the phrase “for 8 weeks” in the note. Connector lines or faint background
+bands can also visually tie the table row to the text segment. In all cases, preserve context – e.g. show an
+excerpt or tooltip with the full sentence when a highlight is selected, so the nurse can read the evidence in
+situ.
+Show where evidence is missing in a calm way. If a policy criterion is not met by the note (a “negative
+finding”), present it in the interface as a flag or dashed-row rather than a bright red alert. For instance,
+include a row in the facts table labeled “Conservative Care: no mention of dedicated therapy period” with a
+neutral-yellow warning icon. EHR design guidelines note that red should be reserved for truly critical data,
+yellow for caution, and green for normal 8 . By using a moderate highlight (e.g. yellow or gray) for absent
+evidence, you acknowledge it (“missing conservative care found”) without triggering alarm. Keep such
+
+1
+
+missing-evidence cues subtle – use icons or light background and an “info” label – because overusing red/
+orange leads to alarm fatigue 8 3 .
+Promote human-in-the-loop verification at every step. Do not let the AI output look “final”; instead invite
+review. For example, add a small “✓/✕” or thumbs-up/down button next to each fact so the reviewer can
+quickly mark it as correct or incorrect. This explicit feedback loop (“Did I get this right?”) gives users agency
+and aligns with XAI principles: Eleken recommends a “transparent AI interface” include mutual verification,
+e.g. a simple user confirmation step, so people can “tweak the result and see how the AI adjusts” 9 . You
+could also show an “Adjust evidence” button that lets the nurse manually highlight a span if the AI missed it.
+In general, the UI should present the AI’s findings as suggestions, not edicts: e.g. captions like “AI-identified
+evidence (subject to review)” and confidence indicators. PAIR’s Guide on trust stresses that users must
+calibrate their trust: they shouldn’t trust blindly but should know when to apply judgment based on the AI’s
+explanations 10 . Thus, ensure every highlighted fact has a clear explanation (the text span), and consider a
+brief tooltip or icon stating source or confidence. Altogether, the interface should read like a conversation: it
+shows why the AI picked each fact (exact quote), and it invites the human to accept or correct it.
+
+Medical Dashboard Aesthetics
+Adopt a clean, modern healthcare palette. Industry examples and design best practices suggest a base of
+white or very light gray (for cleanliness/purity) with accents in calming blues or teals (for trust and serenity)
+11
+12 . For instance, Google Health and many EHRs use white backgrounds with blue/teal highlights and
+icons. Blue conveys “trust, calm, safety” 11 , while green (another common accent) signals health and wellbeing 13 . Reserve bold colors only for emphasis: e.g. use a vibrant red sparingly for errors or truly urgent
+alerts 14 . An EHR guideline reinforces this semantic: red = danger/critical, yellow = caution, green = normal
+operation 8 . In practice, this means: use neutral text fields and UI panels (white or pale gray), color-code
+highlights as above, and show any warning status with an orange/yellow icon or banner (never alarmblaring red for mere missing evidence). Keep the overall contrast high (dark text on light background) for
+readability 15 16 , and avoid busy background patterns.
+Choose legible, professional typography. Sans-serif fonts are standard in healthcare UIs because they’re
+clean and easy to read 17 ; examples include Arial, Helvetica, Verdana or Roboto. Use a comfortable base
+size (around 16px or larger on desktop) and allow for text scaling. NNG advises using “a reasonably large
+default font size” and “high contrast between characters and background” 18 . Also ensure characters are
+easily distinguishable (EHR guidelines specifically say the font must make I vs 1 vs l, O vs 0, etc.
+unmistakable 19 ).
+Set line-height (leading) generous for dense text – about 1.3–1.5× the font size. Studies recommend ~150%
+line spacing for readability 20 . UX guidelines note that longer lines benefit from even more spacing, but as
+a rule of thumb 1.5× is good. Avoid very narrow columns of text, but also don’t stretch lines beyond ~75
+characters 20 . In a fixed-width layout, aim for ~50–70 characters/line; on mobile, keep lines shorter and
+font at least 14px. In sum, use large, legible text with ample line spacing so that the reviewer can scan long
+clinical notes without eye strain 20 18 . Bold or semi-bold can be used for headers and key labels;
+otherwise keep body text simple (no italics or decorative caps).
+
+2
+
+Human-Centered Feature Ideas
+1. Category Filter Toggles. Add checkboxes or toggle buttons (“Symptoms”, “Treatment”, “Red Flags”,
+etc.) that let the user show/hide each category of highlights in the note. This is an easy static-HTML
+enhancement (just CSS/JS) that cuts clutter. It implements the progressive disclosure principle: users
+“control the complexity” by revealing only the information they need 21 . In practice, hiding the
+other categories makes overlapping or dense highlights vanish, so the nurse can focus on one type
+of evidence at a time. The toggles themselves should be clearly labeled with color swatches
+(matching the highlight colors) so it’s obvious what’s on/off.
+2. Linked Highlighting on Hover/Click. Make the fact-text linkage interactive. When the user hovers
+over a fact in the table (or over a highlighted span in the text), automatically highlight the matching
+part of the other view. For example, moving the mouse on “Conservative Care: 6 weeks” could shade
+“6 weeks of PT” in the note. Likewise, clicking a highlighted phrase could scroll the table to the
+corresponding row. This “brushing-and-linking” approach 7 ensures the source and fact stay
+connected. A subtle animation (e.g. a brief fade-in highlight) can draw attention without being
+jarring. This direct manipulation makes traceability obvious and gives the user immediate visual
+confirmation of provenance.
+3. Interactive Verification Icons. Next to each extracted fact, display a small “✔/✖” or thumbs-up/
+down icon for the reviewer to tap. When clicked, the icon toggles state (e.g. graying out or striking
+through the fact) to indicate agreement or disagreement. This low-key UI lets the nurse participate in
+the AI’s decision loop. For instance, if the AI mis-extracted a treatment, the nurse can mark it wrong
+(and even correct it by highlighting the right text). Eleken’s XAI patterns recommend exactly this kind
+of mutual verification (“Did I get that right?”) to build trust 9 . Implementing it with simple JS (e.g.
+toggling CSS classes) is quick but signals “human-centered AI.” As a bonus, a summary line could
+count how many facts were confirmed vs. flagged, reminding the user that the AI’s output is
+provisional.
+Each of these features is straightforward to code in static HTML/JS but visibly reinforces human control and
+clarity – a strong “wow” factor for a human-centered AI demo. For example, toggles and linked highlights
+immediately show users they’re in charge of the view, and verification icons explicitly invite their judgment.
+Combined with the design principles above, these elements will make PA-Trace’s interface clear, trustworthy,
+and ergonomically friendly for clinical reviewers.
+Sources: Best practices are drawn from UX and health-IT design literature. Highlights should leverage preattentive color cues 1 , with sparing use 2 to avoid overload 6 . Brushing-and-linking is a standard
+interactive viz pattern 7 . Paired color semantics (red=danger, green=ok) come from human-factors
+guidelines 8 . And design authorities (e.g. Nielsen Norman, Google PAIR, IxDF) emphasize clarity, contrast,
+and user feedback in AI UIs 2 10 9 , all of which we’ve applied above.
+
+1
+
+Use Color to Prevent Confusion and Help Your Users | IxDF
+
+https://www.interaction-design.org/literature/article/using-color-to-confuse-and-to-prevent-unwanted-actions?
+srsltid=AfmBOoq5OiK_HMbLx1BjiaYHgc7INzCD4rlYZL3QoWYbP5dFWDB58zt-
+
+3
+
+2
+
+5 Formatting Techniques for Long-Form Content - NN/G
+
+https://www.nngroup.com/articles/formatting-long-form-content/
+
+Informing Visual Display Design of Electronic Health Records: A Human Factors Cross-Industry
+Perspective | Published in PATIENT SAFETY
+3
+
+8
+
+19
+
+https://patientsafetyj.com/article/77769-informing-visual-display-design-of-electronic-health-records-a-human-factors-crossindustry-perspective
+4
+
+Named Entity Recognition · Prodigy · An annotation tool for AI, Machine Learning & NLP
+
+https://prodi.gy/docs/named-entity-recognition
+5
+
+20
+
+Optimal Line Length for Readability | UXPin
+
+https://www.uxpin.com/studio/blog/optimal-line-length-for-readability/
+6
+
+Visual Strategies for Text Readability : The Grant Plant, Inc. New Mexico
+
+https://www.thegrantplantnm.com/visual-strategies-for-text-readability/
+7
+
+Brushing and linking - Wikipedia
+
+https://en.wikipedia.org/wiki/Brushing_and_linking
+9
+
+Explainable AI UI Design (XAI): Make Interfaces Users Trust
+
+https://www.eleken.co/blog-posts/explainable-ai-ui-design-xai
+10
+
+Explainability + Trust
+
+https://pair.withgoogle.com/chapter/explainability-trust/
+11
+
+12
+
+13
+
+14
+
+16
+
+17
+
+Medical and healthcare app UI/UX design best practices
+
+https://fuselabcreative.com/healthcare-app-ui-ux-design-best-practices/
+15
+
+18
+
+Legibility, Readability, and Comprehension: Making Users Read Your Words - NN/G
+
+https://www.nngroup.com/articles/legibility-readability-comprehension/
+21
+
+What is Progressive Disclosure? | IxDF
+
+https://www.interaction-design.org/literature/topics/progressive-disclosure?
+srsltid=AfmBOoq28cgHefRpYNPun3cEfMu_Ei7YS1w0UCb0HVCHbMQdf4T526GW
+
+4
+
+
