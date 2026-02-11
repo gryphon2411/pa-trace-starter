@@ -80,7 +80,7 @@ def _render_highlights_html(bundle: Dict[str, Any]) -> str:
     ev = ex.get("evidence", {})
     checklist = bundle["checklist"]
 
-    # Flatten evidence into a list of spans, adding the 'field' key for styling
+    # Flatten evidence into a list of spans
     spans = []
     for field, span_list in ev.items():
         for sp in span_list:
@@ -116,10 +116,10 @@ def _render_highlights_html(bundle: Dict[str, Any]) -> str:
             status_class = "missing"
             display_val += " <span class='badge-missing'>Evidence Missing</span>"
             
-        verify_ui = """
+        verify_ui = f"""
         <div class="verify-controls">
-            <button class="btn-icon btn-check" title="Confirm">✓</button>
-            <button class="btn-icon btn-x" title="Reject">✕</button>
+            <button class="btn-icon btn-check" title="Confirm" onclick="toggleVerify(event, '{key}', 'check')">✓</button>
+            <button class="btn-icon btn-x" title="Reject" onclick="toggleVerify(event, '{key}', 'x')">✕</button>
         </div>
         """
         
@@ -226,6 +226,16 @@ def _render_highlights_html(bundle: Dict[str, Any]) -> str:
     .fact-row:hover td {{ background-color: #f1f3f4; cursor: pointer; }}
     .fact-row.active td {{ background-color: #e8f0fe; border-color: #d2e3fc; }}
 
+    /* Verification States */
+    .fact-row.verified td {{ background-color: #e6f4ea !important; border-color: #34a853; }}
+    .fact-row.verified .btn-check {{ background: #0f9d58; color: white; opacity: 1; }}
+    .fact-row.verified .verify-controls {{ opacity: 1; }}
+
+    .fact-row.rejected td {{ background-color: #fce8e6 !important; border-color: #db4437; }}
+    .fact-row.rejected .value-cell {{ text-decoration: line-through; color: #5f6368; }}
+    .fact-row.rejected .btn-x {{ background: #db4437; color: white; opacity: 1; }}
+    .fact-row.rejected .verify-controls {{ opacity: 1; }}
+
     .dot {{ height: 10px; width: 10px; background-color: #ddd; border-radius: 50%; display: inline-block; margin-right: 8px; }}
     .dot.symptoms_duration_weeks {{ background-color: var(--c-symptoms-text); }}
     .dot.conservative_care_weeks {{ background-color: var(--c-conservative-text); }}
@@ -320,6 +330,25 @@ def _render_highlights_html(bundle: Dict[str, Any]) -> str:
           el.classList.add('hidden');
         }}
       }});
+    }}
+
+    // Verification Logic (Visual State)
+    function toggleVerify(event, field, type) {{
+        event.stopPropagation(); // Prevent row highligting issues
+        const row = document.querySelector('tr[data-field="' + field + '"]');
+        if (!row) return;
+
+        // Clean existing states
+        const isVerified = row.classList.contains('verified');
+        const isRejected = row.classList.contains('rejected');
+        row.classList.remove('verified', 'rejected');
+
+        // Apply new state if it wasn't already active (toggle behavior)
+        if (type === 'check' && !isVerified) {{
+            row.classList.add('verified');
+        }} else if (type === 'x' && !isRejected) {{
+            row.classList.add('rejected');
+        }}
     }}
   </script>
 
