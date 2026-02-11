@@ -1,0 +1,17 @@
+{
+  "case_id": "case_11",
+  "patient": {
+    "age": 45,
+    "sex": "F"
+  },
+  "requesting_provider": {
+    "name": "Dr. Smith",
+    "role": "ED Physician"
+  },
+  "exam_request": {
+    "procedure": "Lumbar spine MRI",
+    "modality": "MRI",
+    "body_part": "Lumbar spine"
+  },
+  "note_text": "45-year-old female presenting to the ED with severe low back pain after a fall yesterday. She reports new onset saddle anesthesia and urinary incontinence since this morning. Exam reveals decreased rectal tone and bilateral lower extremity weakness. Urgent MRI requested to rule out cauda equina syndrome."
+}

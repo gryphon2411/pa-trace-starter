@@ -22,6 +22,10 @@ FIELD-SPECIFIC GUIDANCE:
   If onset is acute/sudden with no stated duration, mark as missing_evidence.
 - conservative_care_weeks: Extract duration of conservative treatment attempted.
   Must be explicit (e.g., "6 weeks of PT", "failed 8 weeks of therapy").
+- acute_onset: If the note states "acute" or "since this morning", set symptoms_duration_weeks to 0.
+- treatments: Extract ONLY therapies/medications tried. 
+  Do NOT include symptoms (e.g., "incontinence"), exam findings (e.g., "weakness"), or diagnoses.
+  If a treatment is NOT mentioned in the text, do NOT list it.
 
 COMMON ERRORS TO AVOID:
 - Do NOT extract patient age as symptom duration.

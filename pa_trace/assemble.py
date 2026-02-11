@@ -42,33 +42,67 @@ def _apply_marks(text: str, spans: list[dict]) -> str:
     Wrap given spans with <mark> tags including category classes.
     Uses indexed placeholders to allow safe HTML escaping of the text content.
     """
-    # Filter valid note spans and sort by start descending to avoid offset shifts
+    # Filter valid note spans
     valid_spans = [
         s for s in spans
         if s.get("source") == "note"
         and isinstance(s.get("start"), int)
         and isinstance(s.get("end"), int)
+        and s["start"] < s["end"]
     ]
-    spans_sorted = sorted(valid_spans, key=lambda s: s["start"], reverse=True)
+
+    # Create insertion events: (position, type_priority, length_priority, span_index)
+    # type_priority: 1 for End (process first => rightsmost), 0 for Start
+    # length_priority: 
+    #   For End: +length (Process longest/outer first to get </Outer></Inner>)
+    #   For Start: -length (Process shortest/inner first to get <Outer><Inner>)
+    events = []
+    
+    # Store spans map to retrieve metadata by index
+    span_map = {}
+    
+    for i, s in enumerate(valid_spans):
+        start, end = s["start"], s["end"]
+        length = end - start
+        
+        # Clip to text bounds if necessary
+        if start < 0: start = 0
+        if end > len(text): end = len(text)
+        if start >= end: continue
+        
+        span_map[i] = s
+        
+        # Add events
+        events.append((end, 1, length, i))
+        events.append((start, 0, -length, i))
+
+    # Sort events descending: Position > Type > LengthPriority
+    events.sort(key=lambda x: (x[0], x[1], x[2]), reverse=True)
 
     out = text
-    # Insert unique indexed placeholders for each span
-    for i, s in enumerate(spans_sorted):
-        start, end = s["start"], s["end"]
-        if start < 0 or end > len(out) or start >= end:
-            continue
-        out = out[:end] + f"__MARK_END_{i}__" + out[end:]
-        out = out[:start] + f"__MARK_START_{i}__" + out[start:]
+    # Insert placeholders
+    # Because we sort by position descending, we can modify 'out' without invalidating lower indices
+    for pos, type_pri, _, span_idx in events:
+        if type_pri == 1:
+            token = f"__MARK_END_{span_idx}__"
+        else:
+            token = f"__MARK_START_{span_idx}__"
+            
+        out = out[:pos] + token + out[pos:]
 
     # Escape the text to make it HTML-safe
     out = html.escape(out)
 
-    # Replace placeholders with actual <mark> tags containing correct classes
-    for i, s in enumerate(spans_sorted):
+    # Replace placeholders with actual tags
+    # We can iterate through valid_spans or just match the tokens we inserted
+    # Since tokens include span_idx, we can lookup the span
+    for i, s in span_map.items():
         field_class = s.get("field", "default")
         span_id = f"span_{i}"
+        
         tag_start = f'<mark id="{span_id}" class="highlight {html.escape(field_class)}" data-field="{html.escape(field_class)}">'
         tag_end = "</mark>"
+        
         out = out.replace(f"__MARK_START_{i}__", tag_start)
         out = out.replace(f"__MARK_END_{i}__", tag_end)
 
