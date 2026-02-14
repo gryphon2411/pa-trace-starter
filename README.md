@@ -1,6 +1,6 @@
-# PA-Trace (Starter) — UI-less Hackathon MVP
+# PA-Trace — UI-less Hackathon MVP
 
-This is a starter scaffold for an **agentic prior authorization (PA) packet drafter** demo:
+An **agentic prior authorization (PA) packet drafter** demo:
 **clinic note + imaging order + payer criteria text → filled PA packet draft + criteria checklist + evidence tracing**.
 
 ## What this is (and isn't)
@@ -91,4 +91,4 @@ For a real submission, replace it with a **public payer guideline excerpt** you 
 - **Provenance validation:** All evidence quotes are verified as exact substrings of the source text, preventing hallucinated citations.
 
 ## License
-MIT for this starter scaffold (your project can choose differently).
+MIT
