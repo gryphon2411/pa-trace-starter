@@ -27,6 +27,8 @@
         --c-redflags-bg: #ffebee;
         --c-redflags-text: #b71c1c;
         --c-redflags-border: #ef9a9a;
+
+        --reveal-speed: 400ms;
     }
 
     html, body {
@@ -49,17 +51,44 @@
         padding: 16px 24px 12px;
         border-bottom: 1px solid var(--border-color);
         flex-shrink: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
+    .header-left {}
     h1 { margin: 0; font-size: 22px; font-weight: 400; color: #1a73e8; display: flex; align-items: center; gap: 10px; }
     .subtitle { color: var(--text-subtle); margin-top: 2px; font-size: 13px; }
     
+    /* Analyze button */
+    .btn-analyze {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 24px;
+        border: none;
+        border-radius: 24px;
+        background: linear-gradient(135deg, #1a73e8, #4285f4);
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+        letter-spacing: 0.3px;
+    }
+    .btn-analyze:hover { box-shadow: 0 4px 16px rgba(26,115,232,0.4); transform: translateY(-1px); }
+    .btn-analyze:active { transform: translateY(0); }
+    .btn-analyze.running { background: linear-gradient(135deg, #5f6368, #80868b); pointer-events: none; }
+    .btn-analyze.done { background: linear-gradient(135deg, #5f6368, #80868b); }
+    .btn-analyze .btn-icon-char { font-size: 16px; }
+
     .grid {
         display: grid;
         grid-template-columns: 3fr 2fr 2fr;
         gap: 16px;
         padding: 16px;
         flex: 1;
-        min-height: 0;       /* allow children to shrink into scroll */
+        min-height: 0;
     }
     @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } .card { max-height: 50vh; } }
 
@@ -70,7 +99,7 @@
         padding: 20px;
         transition: box-shadow 0.2s ease;
         overflow-y: auto;
-        min-height: 0;       /* flex/grid child scroll support */
+        min-height: 0;
     }
     .card:hover { box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23); }
 
@@ -78,23 +107,44 @@
 
     .note-container { font-family: 'Georgia', serif; font-size: 15px; line-height: 1.6; white-space: pre-wrap; color: #3c4043; }
     
+    /* ── Mark styles (hidden by default) ─────────── */
     mark { 
         background-color: transparent; 
         color: inherit; 
         padding: 2px 0;
         border-radius: 4px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all var(--reveal-speed) ease;
         border-bottom: 2px solid transparent;
     }
 
-    mark.symptoms_duration_weeks { background-color: var(--c-symptoms-bg); border-bottom-color: var(--c-symptoms-border); color: var(--c-symptoms-text); }
-    mark.conservative_care_weeks { background-color: var(--c-conservative-bg); border-bottom-color: var(--c-conservative-border); color: var(--c-conservative-text); }
-    mark.treatments { background-color: var(--c-treatments-bg); border-bottom-color: var(--c-treatments-border); color: var(--c-treatments-text); }
-    mark.red_flags { background-color: var(--c-redflags-bg); border-bottom-color: var(--c-redflags-border); color: var(--c-redflags-text); }
+    /* Hidden state: looks like plain text */
+    mark.mark-hidden {
+        background-color: transparent !important;
+        border-bottom-color: transparent !important;
+        color: inherit !important;
+    }
+
+    /* Reveal animation */
+    @keyframes markReveal {
+        0%   { background-color: rgba(255,235,59,0.5); transform: scale(1); }
+        50%  { background-color: rgba(255,235,59,0.3); transform: scale(1.02); }
+        100% { transform: scale(1); }
+    }
+
+    mark.mark-revealing {
+        animation: markReveal var(--reveal-speed) ease-out;
+    }
+
+    /* Visible state (field-specific colors applied after reveal) */
+    mark.symptoms_duration_weeks:not(.mark-hidden) { background-color: var(--c-symptoms-bg); border-bottom-color: var(--c-symptoms-border); color: var(--c-symptoms-text); }
+    mark.conservative_care_weeks:not(.mark-hidden) { background-color: var(--c-conservative-bg); border-bottom-color: var(--c-conservative-border); color: var(--c-conservative-text); }
+    mark.treatments:not(.mark-hidden) { background-color: var(--c-treatments-bg); border-bottom-color: var(--c-treatments-border); color: var(--c-treatments-text); }
+    mark.red_flags:not(.mark-hidden) { background-color: var(--c-redflags-bg); border-bottom-color: var(--c-redflags-border); color: var(--c-redflags-text); }
 
     mark.active { font-weight: 600; box-shadow: 0 0 0 2px rgba(0,0,0,0.2); }
 
+    /* ── Evidence table ──────────────────────────── */
     table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
     td { padding: 10px 12px; background: #fff; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); vertical-align: middle; font-size: 14px; }
     td:first-child { border-left: 1px solid var(--border-color); border-top-left-radius: 8px; border-bottom-left-radius: 8px; font-weight: 500; color: var(--text-subtle); width: 120px; }
@@ -102,6 +152,24 @@
 
     .fact-row:hover td { background-color: #f1f3f4; cursor: pointer; }
     .fact-row.active td { background-color: #e8f0fe; border-color: #d2e3fc; }
+
+    /* Row pending state (before analysis) */
+    .fact-row.row-pending td { opacity: 0.4; }
+    .fact-row.row-pending .value-display { visibility: hidden; }
+
+    /* Row reveal animation */
+    @keyframes rowReveal {
+        0%   { opacity: 0.4; background-color: #fff; }
+        40%  { opacity: 1; background-color: #e8f0fe; }
+        100% { opacity: 1; background-color: #fff; }
+    }
+    .fact-row.row-revealing td {
+        animation: rowReveal 600ms ease-out forwards;
+        opacity: 1;
+    }
+    .fact-row.row-revealing .value-display { visibility: visible; }
+    .fact-row.row-revealed td { opacity: 1; }
+    .fact-row.row-revealed .value-display { visibility: visible; }
 
     /* Verification States */
     .fact-row.verified td { background-color: #e6f4ea !important; border-color: #34a853; }
@@ -136,14 +204,24 @@
     .chunk_id { font-size: 11px; font-weight: 700; color: #1967d2; text-transform: uppercase; margin-bottom: 4px; }
     .chunk pre { font-family: 'Roboto Mono', monospace; font-size: 12px; color: #444; margin: 0; white-space: pre-wrap; }
 
+    /* Overall Status */
+    .status-block { transition: opacity var(--reveal-speed) ease; }
+    .status-block.status-hidden { opacity: 0.15; }
+    .status-block.status-hidden .status-value { visibility: hidden; }
+
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
   <div class="header">
-    <h1><span style="font-size: 26px;">⚕️</span> PA-Trace <span style="font-weight: 300; color: var(--text-subtle);">| Prior Auth Evidence Extraction</span></h1>
-    <div class="subtitle">Case ID: {{ case.case_id }} &bull; Generated by MedGemma 4B</div>
+    <div class="header-left">
+      <h1><span style="font-size: 26px;">⚕️</span> PA-Trace <span style="font-weight: 300; color: var(--text-subtle);">| Prior Auth Evidence Extraction</span></h1>
+      <div class="subtitle">Case ID: {{ case.case_id }} &bull; Generated by MedGemma 4B</div>
+    </div>
+    <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()">
+      <span class="btn-icon-char">▶</span> Analyze
+    </button>
   </div>
 
   <div class="grid">
@@ -169,13 +247,15 @@
       <div class="subtitle" style="margin-bottom: 10px;">Review and verify each extracted fact. Hover to trace to source.</div>
       <table>
         {% for row in rows %}
-        <tr class="fact-row" data-field="{{ row.key }}" onmouseover="highlightField('{{ row.key }}')" onmouseout="unhighlightField('{{ row.key }}')">
+        <tr class="fact-row row-pending" data-field="{{ row.key }}" onmouseover="highlightField('{{ row.key }}')" onmouseout="unhighlightField('{{ row.key }}')">
             <td class="label-cell">
                 <span class="dot {{ row.key }}"></span> {{ row.label }}
             </td>
             <td class="value-cell">
-                {{ row.display_val }}
-                {% if row.is_missing %} <span class='badge-missing'>Evidence Missing</span> {% endif %}
+                <span class="value-display">
+                  {{ row.display_val }}
+                  {% if row.is_missing %} <span class='badge-missing'>Evidence Missing</span> {% endif %}
+                </span>
             </td>
             <td class="action-cell">
                 <div class="verify-controls">
@@ -187,9 +267,11 @@
         {% endfor %}
       </table>
       
-      <h3 style="margin-top: 16px; font-size: 13px; color: var(--text-subtle);">Overall Status</h3>
-      <div style="font-size: 18px; font-weight: 600; color: {{ status_color }};">
-        {{ overall_status }}
+      <div class="status-block status-hidden" id="statusBlock">
+        <h3 style="margin-top: 16px; font-size: 13px; color: var(--text-subtle);">Overall Status</h3>
+        <div class="status-value" style="font-size: 18px; font-weight: 600; color: {{ status_color }};">
+          {{ overall_status }}
+        </div>
       </div>
     </div>
 
@@ -211,7 +293,96 @@
   </div>
 
   <script>
-    // Brushing and Linking: Highlight related elements
+    // ── State ───────────────────────────────────────
+    let analysisRun = false;
+
+    // ── Init: hide all marks ────────────────────────
+    document.querySelectorAll('mark.highlight').forEach(m => m.classList.add('mark-hidden'));
+
+    // ── Analysis Sequence ───────────────────────────
+    const FIELD_ORDER = ['symptoms_duration_weeks', 'conservative_care_weeks', 'treatments', 'red_flags'];
+    const STAGGER_MS = 500;
+
+    function runAnalysis() {
+      const btn = document.getElementById('analyzeBtn');
+
+      // If already done, reset
+      if (analysisRun) {
+        resetAnalysis();
+        return;
+      }
+
+      // Set running state
+      btn.classList.add('running');
+      btn.innerHTML = '<span class="btn-icon-char">⏳</span> Analyzing…';
+
+      let delay = 200; // initial delay
+
+      FIELD_ORDER.forEach((field, fieldIdx) => {
+        const marks = document.querySelectorAll('mark[data-field="' + field + '"]');
+        const row = document.querySelector('tr[data-field="' + field + '"]');
+
+        // Reveal all marks for this field
+        setTimeout(() => {
+          marks.forEach(m => {
+            m.classList.remove('mark-hidden');
+            m.classList.add('mark-revealing');
+            // Remove animation class after it plays
+            setTimeout(() => m.classList.remove('mark-revealing'), 400);
+          });
+
+          // Reveal the corresponding row
+          if (row) {
+            row.classList.remove('row-pending');
+            row.classList.add('row-revealing');
+            setTimeout(() => {
+              row.classList.remove('row-revealing');
+              row.classList.add('row-revealed');
+            }, 600);
+          }
+        }, delay);
+
+        delay += STAGGER_MS;
+      });
+
+      // Reveal overall status after all fields
+      setTimeout(() => {
+        const statusBlock = document.getElementById('statusBlock');
+        statusBlock.classList.remove('status-hidden');
+
+        // Update button to Reset
+        btn.classList.remove('running');
+        btn.classList.add('done');
+        btn.innerHTML = '<span class="btn-icon-char">↻</span> Reset';
+        analysisRun = true;
+      }, delay + 200);
+    }
+
+    function resetAnalysis() {
+      const btn = document.getElementById('analyzeBtn');
+
+      // Hide all marks
+      document.querySelectorAll('mark.highlight').forEach(m => {
+        m.classList.add('mark-hidden');
+        m.classList.remove('mark-revealing');
+      });
+
+      // Reset all rows
+      document.querySelectorAll('.fact-row').forEach(row => {
+        row.classList.remove('row-revealing', 'row-revealed', 'verified', 'rejected');
+        row.classList.add('row-pending');
+      });
+
+      // Hide status
+      document.getElementById('statusBlock').classList.add('status-hidden');
+
+      // Reset button
+      btn.classList.remove('done', 'running');
+      btn.innerHTML = '<span class="btn-icon-char">▶</span> Analyze';
+      analysisRun = false;
+    }
+
+    // ── Brushing and Linking ────────────────────────
     function highlightField(field) {
       document.querySelectorAll('mark[data-field="' + field + '"]').forEach(el => el.classList.add('active'));
       document.querySelectorAll('tr[data-field="' + field + '"]').forEach(el => el.classList.add('active'));
@@ -221,13 +392,12 @@
       document.querySelectorAll('tr[data-field="' + field + '"]').forEach(el => el.classList.remove('active'));
     }
 
-    // Also add hover listeners to marks in the note
     document.querySelectorAll('mark.highlight').forEach(mark => {
       mark.addEventListener('mouseover', () => highlightField(mark.dataset.field));
       mark.addEventListener('mouseout', () => unhighlightField(mark.dataset.field));
     });
 
-    // Category Filter Toggles
+    // ── Category Filter Toggles ─────────────────────
     function toggleFilter(btn, field) {
       btn.classList.toggle('inactive');
       const isActive = !btn.classList.contains('inactive');
@@ -240,7 +410,7 @@
       });
     }
 
-    // Verification Logic (Visual State)
+    // ── Verification Logic ──────────────────────────
     function toggleVerify(event, field, type) {
         event.stopPropagation();
         const row = document.querySelector('tr[data-field="' + field + '"]');
