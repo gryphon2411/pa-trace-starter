@@ -26,4 +26,6 @@
 
 **[github.com/gryphon2411/pa-trace](https://github.com/gryphon2411/pa-trace)**
 
+*Thank you for watching!*
+
 </div>
